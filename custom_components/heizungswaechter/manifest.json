@@ -1,7 +1,7 @@
 {
   "domain": "heizungswaechter",
   "name": "HeizungsWächter",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "documentation": "https://github.com/HatchetMan111/HeizungsWaechter",
   "issue_tracker": "https://github.com/HatchetMan111/HeizungsWaechter/issues",
   "dependencies": [],
