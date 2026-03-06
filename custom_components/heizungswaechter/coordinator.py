@@ -11,6 +11,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    FUEL_CALORIFIC,
     DOMAIN,
     CONF_TEMPERATURE_SENSOR,
     CONF_TEMP_THRESHOLD,
@@ -52,6 +53,10 @@ class HeizungCoordinator:
         self.cycles_today: int = 0
         self.cycles_month: int = 0
         self.cycles_total: int = 0
+        # Volume/mass accumulators (L, m³ or kg depending on fuel type)
+        self.volume_today: float = 0.0
+        self.volume_month: float = 0.0
+        self.volume_total: float = 0.0
 
         # Current session runtime (for live display)
         self.current_session_s: float = 0.0
@@ -158,7 +163,7 @@ class HeizungCoordinator:
         self.hass.async_create_task(self._async_save_storage())
 
     def _add_runtime(self, seconds: float) -> None:
-        """Add a completed run's seconds and compute kWh + cost."""
+        """Add a completed run's seconds and compute kWh, volume + cost."""
         self.runtime_today_s += seconds
         self.runtime_month_s += seconds
         self.runtime_total_s += seconds
@@ -175,6 +180,14 @@ class HeizungCoordinator:
         self.cost_month += cost
         self.cost_total += cost
 
+        # Volume / mass: kWh ÷ calorific value of fuel
+        fuel_type = self._cfg.get("fuel_type", "heizoel")
+        calorific = FUEL_CALORIFIC.get(fuel_type, 10.0)
+        volume = kwh / calorific
+        self.volume_today += volume
+        self.volume_month += volume
+        self.volume_total += volume
+
     def _check_day_rollover(self) -> None:
         today = dt_util.now().strftime("%Y-%m-%d")
         month = dt_util.now().strftime("%Y-%m")
@@ -185,6 +198,7 @@ class HeizungCoordinator:
             self.kwh_today = 0.0
             self.cost_today = 0.0
             self.cycles_today = 0
+            self.volume_today = 0.0
             _LOGGER.info("Day rollover – daily stats reset")
 
         if self._last_month and self._last_month != month:
@@ -193,6 +207,7 @@ class HeizungCoordinator:
             self.kwh_month = 0.0
             self.cost_month = 0.0
             self.cycles_month = 0
+            self.volume_month = 0.0
             _LOGGER.info("Month rollover – monthly stats reset")
 
         self._last_date = today
@@ -218,6 +233,9 @@ class HeizungCoordinator:
         self.cycles_today = data.get("cycles_today", 0)
         self.cycles_month = data.get("cycles_month", 0)
         self.cycles_total = data.get("cycles_total", 0)
+        self.volume_today = data.get("volume_today", 0.0)
+        self.volume_month = data.get("volume_month", 0.0)
+        self.volume_total = data.get("volume_total", 0.0)
         self._last_date = data.get("last_date", "")
         self._last_month = data.get("last_month", "")
 
@@ -236,6 +254,9 @@ class HeizungCoordinator:
                 "cycles_today": self.cycles_today,
                 "cycles_month": self.cycles_month,
                 "cycles_total": self.cycles_total,
+                "volume_today": self.volume_today,
+                "volume_month": self.volume_month,
+                "volume_total": self.volume_total,
                 "last_date": self._last_date,
                 "last_month": self._last_month,
             }
