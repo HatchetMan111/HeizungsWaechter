@@ -18,7 +18,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, FUEL_TYPES, CONF_FUEL_TYPE
+from .const import DOMAIN, FUEL_TYPES, FUEL_UNIT, FUEL_GAS_TYPES, CONF_FUEL_TYPE
 from .coordinator import HeizungCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,6 +47,10 @@ async def async_setup_entry(
         HeizungCyclesTodaySensor(coordinator, entry),
         HeizungCyclesMonthSensor(coordinator, entry),
         HeizungCyclesTotalSensor(coordinator, entry),
+        # Volume/mass sensors (m³, L or kg depending on fuel)
+        HeizungVolumeTodaySensor(coordinator, entry),
+        HeizungVolumeMonthSensor(coordinator, entry),
+        HeizungVolumeTotalSensor(coordinator, entry),
     ]
     async_add_entities(entities)
 
@@ -327,3 +331,81 @@ class HeizungCyclesTotalSensor(_HeizungBase):
     @property
     def native_value(self) -> int:
         return self._coordinator.cycles_total
+
+
+# ── Volumen / Masse ───────────────────────────────────────────────────────────
+
+def _get_fuel_type(entry: ConfigEntry) -> str:
+    cfg = {**entry.data, **entry.options}
+    return cfg.get(CONF_FUEL_TYPE, "heizoel")
+
+
+def _volume_unit(entry: ConfigEntry) -> str:
+    return FUEL_UNIT.get(_get_fuel_type(entry), "L")
+
+
+def _volume_device_class(entry: ConfigEntry):
+    """Return GAS device_class for m³ sensors (Energie-Dashboard kompatibel)."""
+    fuel = _get_fuel_type(entry)
+    if fuel in FUEL_GAS_TYPES:
+        return SensorDeviceClass.GAS   # m³ – nativ im Energie-Dashboard
+    return None  # L / kg – kein spezieller device_class nötig
+
+
+def _volume_icon(entry: ConfigEntry) -> str:
+    fuel = _get_fuel_type(entry)
+    icons = {
+        "heizoel":     "mdi:barrel",
+        "erdgas":      "mdi:meter-gas",
+        "fluessiggas": "mdi:propane-tank",
+        "pellets":     "mdi:bag-personal",
+    }
+    return icons.get(fuel, "mdi:gauge")
+
+
+class HeizungVolumeTodaySensor(_HeizungBase):
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, c, e):
+        super().__init__(c, e, "volume_today")
+        fuel_label = FUEL_UNIT.get(_get_fuel_type(e), "L")
+        self._attr_name = f"Verbrauch Heute ({fuel_label})"
+        self._attr_native_unit_of_measurement = _volume_unit(e)
+        self._attr_device_class = _volume_device_class(e)
+        self._attr_icon = _volume_icon(e)
+
+    @property
+    def native_value(self) -> float:
+        return round(self._coordinator.volume_today, 3)
+
+
+class HeizungVolumeMonthSensor(_HeizungBase):
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, c, e):
+        super().__init__(c, e, "volume_month")
+        fuel_label = FUEL_UNIT.get(_get_fuel_type(e), "L")
+        self._attr_name = f"Verbrauch Diesen Monat ({fuel_label})"
+        self._attr_native_unit_of_measurement = _volume_unit(e)
+        self._attr_device_class = _volume_device_class(e)
+        self._attr_icon = _volume_icon(e)
+
+    @property
+    def native_value(self) -> float:
+        return round(self._coordinator.volume_month, 3)
+
+
+class HeizungVolumeTotalSensor(_HeizungBase):
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    def __init__(self, c, e):
+        super().__init__(c, e, "volume_total")
+        fuel_label = FUEL_UNIT.get(_get_fuel_type(e), "L")
+        self._attr_name = f"Verbrauch Gesamt ({fuel_label})"
+        self._attr_native_unit_of_measurement = _volume_unit(e)
+        self._attr_device_class = _volume_device_class(e)
+        self._attr_icon = _volume_icon(e)
+
+    @property
+    def native_value(self) -> float:
+        return round(self._coordinator.volume_total, 3)
