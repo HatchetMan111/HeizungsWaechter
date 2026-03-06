@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Heating Monitor Setup",
+        "description": "Configure your fossil fuel heating system",
+        "data": {
+          "name": "Heating system name",
+          "temperature_sensor": "Zigbee Thermometer (flue pipe)",
+          "temp_threshold": "Temperature threshold 'Heating ON' (°C)",
+          "burner_power_kw": "Burner power (kW)",
+          "fuel_type": "Fuel type",
+          "fuel_price_per_kwh": "Fuel price (€/kWh)",
+          "efficiency": "Burner efficiency (%)"
+        }
+      }
+    },
+    "error": {
+      "sensor_not_found": "Temperature sensor not found",
+      "invalid_power": "Burner power must be greater than 0",
+      "invalid_threshold": "Threshold must be between 30 and 300°C"
+    },
+    "abort": {
+      "already_configured": "This heating system is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Adjust settings",
+        "data": {
+          "temp_threshold": "Temperature threshold 'Heating ON' (°C)",
+          "burner_power_kw": "Burner power (kW)",
+          "fuel_type": "Fuel type",
+          "fuel_price_per_kwh": "Fuel price (€/kWh)",
+          "efficiency": "Burner efficiency (%)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "domain": "heizungswaechter",
+  "name": "HeizungsWächter",
+  "version": "1.0.0",
+  "documentation": "https://github.com/HatchetMan111/HeizungsWaechter",
+  "issue_tracker": "https://github.com/HatchetMan111/HeizungsWaechter/issues",
+  "dependencies": [],
+  "codeowners": ["@HatchetMan111"],
+  "requirements": [],
+  "iot_class": "local_polling",
+  "hacs": "1.0.0"
+}

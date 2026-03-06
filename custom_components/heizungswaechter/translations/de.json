@@ -1,0 +1,41 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Heizungsüberwachung einrichten",
+        "description": "Konfiguriere deine Fossil-Heizungsanlage",
+        "data": {
+          "name": "Name der Heizungsanlage",
+          "temperature_sensor": "Zigbee Thermometer (Ofenrohr)",
+          "temp_threshold": "Temperatur-Schwellwert 'Heizung AN' (°C)",
+          "burner_power_kw": "Brennerleistung (kW)",
+          "fuel_type": "Brennstofftyp",
+          "fuel_price_per_kwh": "Brennstoffpreis (€/kWh)",
+          "efficiency": "Wirkungsgrad des Brenners (%)"
+        }
+      }
+    },
+    "error": {
+      "sensor_not_found": "Temperatursensor nicht gefunden",
+      "invalid_power": "Brennerleistung muss größer als 0 sein",
+      "invalid_threshold": "Schwellwert muss zwischen 30 und 300°C liegen"
+    },
+    "abort": {
+      "already_configured": "Diese Heizungsanlage ist bereits konfiguriert"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Einstellungen anpassen",
+        "data": {
+          "temp_threshold": "Temperatur-Schwellwert 'Heizung AN' (°C)",
+          "burner_power_kw": "Brennerleistung (kW)",
+          "fuel_type": "Brennstofftyp",
+          "fuel_price_per_kwh": "Brennstoffpreis (€/kWh)",
+          "efficiency": "Wirkungsgrad des Brenners (%)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "HeizungsWächter",
+  "description": "Überwacht Gas/Öl/Fossil Heizungen via Zigbee-Thermometer im Ofenrohr – kWh, Kosten, Laufzeit, Taktungen",
+  "render_readme": true,
+  "homeassistant": "2023.1.0",
+  "content_in_root": false
+}
