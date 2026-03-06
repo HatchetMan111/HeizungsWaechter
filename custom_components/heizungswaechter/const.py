@@ -24,13 +24,27 @@ FUEL_TYPES = {
     "pellets": "Holzpellets",
 }
 
-# Typical calorific values (kWh per unit) – informational
+# Typical calorific values (kWh per unit) – used for volume/mass calculation
 FUEL_CALORIFIC = {
     "heizoel":     10.0,   # kWh/L
     "erdgas":      10.0,   # kWh/m³
     "fluessiggas": 12.8,   # kWh/kg
     "pellets":      4.8,   # kWh/kg
 }
+
+# Physical unit per fuel type (for display + energy dashboard)
+FUEL_UNIT = {
+    "heizoel":     "L",    # Liter
+    "erdgas":      "m³",   # Kubikmeter
+    "fluessiggas": "kg",   # Kilogramm
+    "pellets":     "kg",   # Kilogramm
+}
+
+# Fuel types that use device_class GAS (m³) – HA Energie-Dashboard native
+FUEL_GAS_TYPES = {"erdgas"}
+
+# Fuel types best tracked via kWh in the energy dashboard
+FUEL_KWH_TYPES = {"heizoel", "fluessiggas", "pellets"}
 
 # Storage keys
 STORAGE_VERSION = 1
