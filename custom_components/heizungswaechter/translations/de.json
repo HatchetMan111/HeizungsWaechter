@@ -2,38 +2,43 @@
   "config": {
     "step": {
       "user": {
-        "title": "Heizungsüberwachung einrichten",
-        "description": "Konfiguriere deine Fossil-Heizungsanlage",
+        "title": "HeizungsWächter einrichten",
+        "description": "Verbinde dein Zigbee-Thermometer (z.B. SONOFF SNZB-02LD) mit deiner Heizungsanlage.",
         "data": {
           "name": "Name der Heizungsanlage",
-          "temperature_sensor": "Zigbee Thermometer (Ofenrohr)",
-          "temp_threshold": "Temperatur-Schwellwert 'Heizung AN' (°C)",
+          "temperature_sensor": "Temperatursensor (Ofenrohr)",
+          "temp_threshold": "Schwellwert Heizung AN (°C)",
           "burner_power_kw": "Brennerleistung (kW)",
           "fuel_type": "Brennstofftyp",
           "fuel_price_per_kwh": "Brennstoffpreis (€/kWh)",
-          "efficiency": "Wirkungsgrad des Brenners (%)"
+          "efficiency": "Wirkungsgrad (%)"
+        },
+        "data_description": {
+          "temperature_sensor": "Wähle den Sensor der im Ofenrohr sitzt",
+          "temp_threshold": "Ab dieser Temperatur gilt die Heizung als AN (empfohlen: 60°C)",
+          "burner_power_kw": "Steht auf dem Typenschild des Brenners",
+          "fuel_price_per_kwh": "Heizöl ~0,10 €/kWh | Erdgas ~0,08 €/kWh",
+          "efficiency": "Aus dem letzten Wartungsprotokoll, ca. 85%"
         }
       }
     },
     "error": {
-      "sensor_not_found": "Temperatursensor nicht gefunden",
-      "invalid_power": "Brennerleistung muss größer als 0 sein",
-      "invalid_threshold": "Schwellwert muss zwischen 30 und 300°C liegen"
+      "sensor_not_found": "Sensor nicht gefunden – bitte einen aktiven Temperatursensor wählen"
     },
     "abort": {
-      "already_configured": "Diese Heizungsanlage ist bereits konfiguriert"
+      "already_configured": "Dieser Sensor wird bereits überwacht"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "Einstellungen anpassen",
+        "title": "HeizungsWächter Einstellungen",
         "data": {
-          "temp_threshold": "Temperatur-Schwellwert 'Heizung AN' (°C)",
+          "temp_threshold": "Schwellwert Heizung AN (°C)",
           "burner_power_kw": "Brennerleistung (kW)",
           "fuel_type": "Brennstofftyp",
           "fuel_price_per_kwh": "Brennstoffpreis (€/kWh)",
-          "efficiency": "Wirkungsgrad des Brenners (%)"
+          "efficiency": "Wirkungsgrad (%)"
         }
       }
     }
