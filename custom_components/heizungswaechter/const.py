@@ -1,30 +1,32 @@
-"""Constants for Heizungsüberwachung integration."""
-
+"""Konstanten für HeizungsWächter."""
 DOMAIN = "heizungswaechter"
-VERSION = "1.0.0"
+VERSION = "1.2.0"
 
-# Config keys
-CONF_TEMPERATURE_SENSOR = "temperature_sensor"
-CONF_TEMP_THRESHOLD = "temp_threshold"
-CONF_BURNER_POWER_KW = "burner_power_kw"
-CONF_FUEL_TYPE = "fuel_type"
-CONF_FUEL_PRICE_PER_KWH = "fuel_price_per_kwh"
-CONF_EFFICIENCY = "efficiency"
+# Konfigurationsschlüssel
+CONF_NAME                = "name"
+CONF_TEMPERATURE_SENSOR  = "temperature_sensor"
+CONF_TEMP_THRESHOLD      = "temp_threshold"
+CONF_BURNER_POWER_KW     = "burner_power_kw"
+CONF_FUEL_TYPE           = "fuel_type"
+CONF_FUEL_PRICE_PER_KWH  = "fuel_price_per_kwh"
+CONF_EFFICIENCY          = "efficiency"
 
-# Defaults
-DEFAULT_TEMP_THRESHOLD = 60.0   # °C – above this = burner is ON
-DEFAULT_EFFICIENCY = 85.0        # %
-DEFAULT_NAME = "Heizung"
+# Standardwerte
+DEFAULT_NAME            = "HeizungsWächter"
+DEFAULT_TEMP_THRESHOLD  = 60.0   # °C
+DEFAULT_EFFICIENCY      = 85.0   # %
+DEFAULT_BURNER_POWER    = 18.0   # kW
+DEFAULT_FUEL_PRICE      = 0.10   # €/kWh
 
-# Fuel types with their kWh per liter/m³ (for reference display only)
+# Brennstofftypen
 FUEL_TYPES = {
-    "heizoel": "Heizöl (EL)",
-    "erdgas": "Erdgas (H-Gas)",
+    "heizoel":     "Heizöl (EL)",
+    "erdgas":      "Erdgas (H-Gas)",
     "fluessiggas": "Flüssiggas (Propan/Butan)",
-    "pellets": "Holzpellets",
+    "pellets":     "Holzpellets",
 }
 
-# Typical calorific values (kWh per unit) – used for volume/mass calculation
+# Heizwert je Brennstoff (kWh pro Einheit)
 FUEL_CALORIFIC = {
     "heizoel":     10.0,   # kWh/L
     "erdgas":      10.0,   # kWh/m³
@@ -32,26 +34,20 @@ FUEL_CALORIFIC = {
     "pellets":      4.8,   # kWh/kg
 }
 
-# Physical unit per fuel type (for display + energy dashboard)
+# Physikalische Einheit je Brennstoff
 FUEL_UNIT = {
-    "heizoel":     "L",    # Liter
-    "erdgas":      "m³",   # Kubikmeter
-    "fluessiggas": "kg",   # Kilogramm
-    "pellets":     "kg",   # Kilogramm
+    "heizoel":     "L",
+    "erdgas":      "m³",
+    "fluessiggas": "kg",
+    "pellets":     "kg",
 }
 
-# Fuel types that use device_class GAS (m³) – HA Energie-Dashboard native
+# Brennstoffe mit HA device_class GAS (m³ → Energie-Dashboard)
 FUEL_GAS_TYPES = {"erdgas"}
 
-# Fuel types best tracked via kWh in the energy dashboard
-FUEL_KWH_TYPES = {"heizoel", "fluessiggas", "pellets"}
-
-# Storage keys
+# Speicher
 STORAGE_VERSION = 1
-STORAGE_KEY = f"{DOMAIN}.statistics"
+STORAGE_KEY     = f"{DOMAIN}.statistics"
 
-# Update interval in seconds
-UPDATE_INTERVAL = 30
-
-# Platforms
+# Plattformen
 PLATFORMS = ["sensor"]
