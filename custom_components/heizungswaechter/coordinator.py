@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.event import async_track_state_change_event
+from homeassistant.helpers.event import (
+    async_track_state_change_event,
+    async_track_time_interval,
+)
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
@@ -23,6 +26,11 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Verzögertes Schreiben (Sekunden) – schützt die SSD und schreibt
+# trotzdem zuverlässig beim Shutdown (Store-Final-Write).
+SAVE_DELAY = 60.0
+UPDATE_INTERVAL = timedelta(minutes=1)
 
 
 class HeizungsWaechterCoordinator:
@@ -64,7 +72,8 @@ class HeizungsWaechterCoordinator:
         self._last_date:  str = ""
         self._last_month: str = ""
 
-        self._unsub = None
+        self._unsub_sensor   = None
+        self._unsub_interval = None
 
     # ── Konfiguration ──────────────────────────────────────────────────────── #
 
@@ -102,26 +111,50 @@ class HeizungsWaechterCoordinator:
         await self._load()
         self._check_rollover()
 
-        self._unsub = async_track_state_change_event(
+        self._unsub_sensor = async_track_state_change_event(
             self.hass,
             [self.sensor_entity_id],
             self._on_sensor_change,
         )
+        # Minütlicher Takt: Rollover, Live-Session und Persistenz,
+        # auch wenn der Zigbee-Sensor lange nichts meldet.
+        self._unsub_interval = async_track_time_interval(
+            self.hass, self._on_interval, UPDATE_INTERVAL
+        )
 
-        # Sofort aktuellen Zustand prüfen
-        state = self.hass.states.get(self.sensor_entity_id)
-        if state and state.state not in ("unknown", "unavailable"):
-            try:
-                self._update_burner(float(state.state))
-            except ValueError:
-                pass
+        # Aktuellen Zustand übernehmen (auch nach HA-Neustart, ohne
+        # eine Phantom-Taktung zu zählen)
+        temp = self._read_sensor_temp()
+        if temp is not None:
+            self._sync_burner_state(temp)
 
     async def async_teardown(self) -> None:
-        if self._unsub:
-            self._unsub()
+        if self._unsub_sensor:
+            self._unsub_sensor()
+            self._unsub_sensor = None
+        if self._unsub_interval:
+            self._unsub_interval()
+            self._unsub_interval = None
         await self._save()
 
-    # ── Sensor-Änderung ────────────────────────────────────────────────────── #
+    def resubscribe(self) -> None:
+        """Sensor-Abo erneuern, wenn der konfigurierte Sensor gewechselt hat."""
+        if self._unsub_sensor:
+            self._unsub_sensor()
+        self._unsub_sensor = async_track_state_change_event(
+            self.hass,
+            [self.sensor_entity_id],
+            self._on_sensor_change,
+        )
+        # Laufende Session abschließen, bevor der neue Sensor übernommen wird
+        if self.burner_on and self._burner_start:
+            elapsed = (dt_util.utcnow() - self._burner_start).total_seconds()
+            self._accumulate(elapsed)
+        temp = self._read_sensor_temp()
+        if temp is not None:
+            self._sync_burner_state(temp)
+
+    # ── Sensor-Änderung / Takt ─────────────────────────────────────────────── #
 
     @callback
     def _on_sensor_change(self, event) -> None:
@@ -136,10 +169,43 @@ class HeizungsWaechterCoordinator:
         self._update_burner(temp)
         self._fire_update()
 
+    @callback
+    def _on_interval(self, _now) -> None:
+        self._check_rollover()
+        if self.burner_on and self._burner_start:
+            self.current_session_s = (
+                dt_util.utcnow() - self._burner_start
+            ).total_seconds()
+        self._schedule_save()
+        self._fire_update()
+
+    def _read_sensor_temp(self) -> float | None:
+        state = self.hass.states.get(self.sensor_entity_id)
+        if state and state.state not in ("unknown", "unavailable"):
+            try:
+                return float(state.state)
+            except ValueError:
+                return None
+        return None
+
+    def _sync_burner_state(self, temp: float) -> None:
+        """Brennerzustand ohne Zählung setzen (Setup / Sensorwechsel).
+
+        Nach einem Neustart ist die ursprüngliche Startzeit unbekannt –
+        die Session-Zeit beginnt daher bei null.
+        """
+        is_on = temp >= self._threshold
+        self.burner_on = is_on
+        if is_on:
+            self._burner_start = dt_util.utcnow()
+        else:
+            self._burner_start = None
+            self.current_session_s = 0.0
+
     def _update_burner(self, temp: float) -> None:
-        now      = dt_util.utcnow()
-        was_on   = self.burner_on
-        is_on    = temp >= self._threshold
+        now    = dt_util.utcnow()
+        was_on = self.burner_on
+        is_on  = temp >= self._threshold
 
         if is_on and not was_on:
             # Brenner springt AN
@@ -155,22 +221,30 @@ class HeizungsWaechterCoordinator:
             if self._burner_start:
                 elapsed = (now - self._burner_start).total_seconds()
                 self._accumulate(elapsed)
-                self._burner_start    = None
-                self.current_session_s = 0.0
+            self._burner_start     = None
+            self.current_session_s = 0.0
 
         elif is_on and was_on and self._burner_start:
             # Noch am laufen – live Session-Zeit aktualisieren
             self.current_session_s = (now - self._burner_start).total_seconds()
 
-        self.hass.async_create_task(self._save())
+        if is_on != was_on:
+            # Übergänge umgehend (debounced) sichern
+            self._schedule_save()
 
     def _accumulate(self, seconds: float) -> None:
-        """Laufzeit, kWh, Kosten und Volumen addieren."""
-        hours    = seconds / 3600.0
-        kwh      = self._power_kw * hours * self._efficiency
-        cost     = kwh * self._price
+        """Laufzeit, Brennstoff-Energie, Kosten und Volumen addieren.
+
+        Die Brennerleistung vom Typenschild ist die Nennwärmeleistung
+        (Abgabe). Der verbrauchte Brennstoff ergibt sich daraus über den
+        Wirkungsgrad:  kWh = P × h / η
+        """
+        hours     = seconds / 3600.0
+        effective = max(self._efficiency, 0.1)  # Schutz vor Division durch 0
+        kwh       = self._power_kw * hours / effective
+        cost      = kwh * self._price
         calorific = FUEL_CALORIFIC.get(self._fuel_type, 10.0)
-        volume   = kwh / calorific
+        volume    = kwh / calorific
 
         self.runtime_today_s += seconds;  self.runtime_month_s += seconds;  self.runtime_total_s += seconds
         self.kwh_today       += kwh;      self.kwh_month       += kwh;      self.kwh_total       += kwh
@@ -196,6 +270,34 @@ class HeizungsWaechterCoordinator:
 
     # ── Persistenz ─────────────────────────────────────────────────────────── #
 
+    def _schedule_save(self, delay: float = SAVE_DELAY) -> None:
+        """Debounced Persistenz – schreibt spätestens beim HA-Shutdown."""
+        self.hass.async_create_task(
+            self._store.async_delay_save(self._snapshot, delay)
+        )
+
+    def _snapshot(self) -> dict:
+        return {
+            "runtime_today_s":  self.runtime_today_s,
+            "runtime_month_s":  self.runtime_month_s,
+            "runtime_total_s":  self.runtime_total_s,
+            "kwh_today":        self.kwh_today,
+            "kwh_month":        self.kwh_month,
+            "kwh_total":        self.kwh_total,
+            "cost_today":       self.cost_today,
+            "cost_month":       self.cost_month,
+            "cost_total":       self.cost_total,
+            "volume_today":     self.volume_today,
+            "volume_month":     self.volume_month,
+            "volume_total":     self.volume_total,
+            "cycles_today":     self.cycles_today,
+            "cycles_month":     self.cycles_month,
+            "cycles_total":     self.cycles_total,
+            "burner_on":        self.burner_on,
+            "last_date":        self._last_date,
+            "last_month":       self._last_month,
+        }
+
     async def _load(self) -> None:
         data = await self._store.async_load()
         if not data:
@@ -215,29 +317,12 @@ class HeizungsWaechterCoordinator:
         self.cycles_today     = data.get("cycles_today",     0)
         self.cycles_month     = data.get("cycles_month",     0)
         self.cycles_total     = data.get("cycles_total",     0)
+        self.burner_on        = bool(data.get("burner_on",   False))
         self._last_date       = data.get("last_date",        "")
         self._last_month      = data.get("last_month",       "")
 
     async def _save(self) -> None:
-        await self._store.async_save({
-            "runtime_today_s":  self.runtime_today_s,
-            "runtime_month_s":  self.runtime_month_s,
-            "runtime_total_s":  self.runtime_total_s,
-            "kwh_today":        self.kwh_today,
-            "kwh_month":        self.kwh_month,
-            "kwh_total":        self.kwh_total,
-            "cost_today":       self.cost_today,
-            "cost_month":       self.cost_month,
-            "cost_total":       self.cost_total,
-            "volume_today":     self.volume_today,
-            "volume_month":     self.volume_month,
-            "volume_total":     self.volume_total,
-            "cycles_today":     self.cycles_today,
-            "cycles_month":     self.cycles_month,
-            "cycles_total":     self.cycles_total,
-            "last_date":        self._last_date,
-            "last_month":       self._last_month,
-        })
+        await self._store.async_save(self._snapshot())
 
     def _fire_update(self) -> None:
         self.hass.bus.async_fire(f"{DOMAIN}_updated_{self.entry.entry_id}")

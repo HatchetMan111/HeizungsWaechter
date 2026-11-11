@@ -130,6 +130,16 @@ def _build_options_schema(defaults: dict) -> vol.Schema:
     """Formular für nachträgliche Änderungen (Optionen-Flow)."""
     return vol.Schema(
         {
+            # Temperatursensor bleibt nachträglich wählbar
+            vol.Required(
+                CONF_TEMPERATURE_SENSOR,
+                default=defaults.get(CONF_TEMPERATURE_SENSOR),
+            ): selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain="sensor",
+                    device_class="temperature",
+                )
+            ),
             vol.Required(
                 CONF_TEMP_THRESHOLD,
                 default=defaults.get(CONF_TEMP_THRESHOLD, DEFAULT_TEMP_THRESHOLD),
@@ -241,14 +251,13 @@ class HeizungsWaechterConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> config_entries.OptionsFlow:
-        return HeizungsWaechterOptionsFlow(config_entry)
+        # Ab HA 2024.11 wird config_entry automatisch als
+        # self.config_entry gesetzt – kein Konstruktor-Argument mehr.
+        return HeizungsWaechterOptionsFlow()
 
 
 class HeizungsWaechterOptionsFlow(config_entries.OptionsFlow):
     """Optionen-Flow: Einstellungen nachträglich im UI ändern."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self._entry = config_entry
 
     async def async_step_init(
         self, user_input: dict | None = None
@@ -257,7 +266,7 @@ class HeizungsWaechterOptionsFlow(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         # Aktuelle Werte (data + options zusammenführen) als Vorbelegung
-        current = {**self._entry.data, **self._entry.options}
+        current = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
             step_id="init",
             data_schema=_build_options_schema(current),

@@ -16,8 +16,13 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CONF_BURNER_POWER_KW,
+    CONF_EFFICIENCY,
+    CONF_FUEL_PRICE_PER_KWH,
     CONF_FUEL_TYPE,
+    CONF_TEMP_THRESHOLD,
     DOMAIN,
+    VERSION,
     FUEL_TYPES,
     FUEL_UNIT,
     FUEL_GAS_TYPES,
@@ -70,7 +75,7 @@ def _device(entry: ConfigEntry) -> DeviceInfo:
         name=entry.title,
         manufacturer="HeizungsWächter",
         model=FUEL_TYPES.get(cfg.get(CONF_FUEL_TYPE, "heizoel"), "Fossil"),
-        sw_version="1.2.0",
+        sw_version=VERSION,
     )
 
 
@@ -111,8 +116,10 @@ class _Base(SensorEntity):
 # ── Status ────────────────────────────────────────────────────────────────────
 
 class StatusSensor(_Base):
-    _attr_name = "Brenner Status"
-    _attr_icon = "mdi:fire"
+    _attr_name          = "Brenner Status"
+    _attr_icon          = "mdi:fire"
+    _attr_device_class  = SensorDeviceClass.ENUM
+    _attr_options       = ["AN", "AUS"]
 
     def __init__(self, c, e):
         super().__init__(c, e, "status")
@@ -125,11 +132,11 @@ class StatusSensor(_Base):
     def extra_state_attributes(self) -> dict[str, Any]:
         cfg = {**self._entry.data, **self._entry.options}
         return {
-            "schwellwert_°C":       cfg.get("temp_threshold"),
-            "brennerleistung_kW":   cfg.get("burner_power_kw"),
-            "brennstoff":           FUEL_TYPES.get(cfg.get("fuel_type", ""), ""),
-            "wirkungsgrad_%":       cfg.get("efficiency"),
-            "preis_€_pro_kWh":      cfg.get("fuel_price_per_kwh"),
+            "schwellwert_°C":       cfg.get(CONF_TEMP_THRESHOLD),
+            "brennerleistung_kW":   cfg.get(CONF_BURNER_POWER_KW),
+            "brennstoff":           FUEL_TYPES.get(cfg.get(CONF_FUEL_TYPE, ""), ""),
+            "wirkungsgrad_%":       cfg.get(CONF_EFFICIENCY),
+            "preis_€_pro_kWh":      cfg.get(CONF_FUEL_PRICE_PER_KWH),
         }
 
 

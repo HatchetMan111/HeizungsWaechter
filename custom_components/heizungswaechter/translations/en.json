@@ -2,43 +2,47 @@
   "config": {
     "step": {
       "user": {
-        "title": "HeizungsWächter einrichten",
-        "description": "Verbinde dein Zigbee-Thermometer (z.B. SONOFF SNZB-02LD) mit deiner Heizungsanlage.",
+        "title": "Set up HeizungsWächter",
+        "description": "Connect your Zigbee thermometer (e.g. SONOFF SNZB-02LD) mounted in the flue pipe of your boiler.",
         "data": {
-          "name": "Name der Heizungsanlage",
-          "temperature_sensor": "Temperatursensor (Ofenrohr)",
-          "temp_threshold": "Schwellwert Heizung AN (°C)",
-          "burner_power_kw": "Brennerleistung (kW)",
-          "fuel_type": "Brennstofftyp",
-          "fuel_price_per_kwh": "Brennstoffpreis (€/kWh)",
-          "efficiency": "Wirkungsgrad (%)"
+          "name": "Name of the boiler system",
+          "temperature_sensor": "Temperature sensor (flue pipe)",
+          "temp_threshold": "Burner ON threshold (°C)",
+          "burner_power_kw": "Burner power (kW)",
+          "fuel_type": "Fuel type",
+          "fuel_price_per_kwh": "Fuel price (€/kWh)",
+          "efficiency": "Efficiency (%)"
         },
         "data_description": {
-          "temperature_sensor": "Wähle den Sensor der im Ofenrohr sitzt",
-          "temp_threshold": "Ab dieser Temperatur gilt die Heizung als AN (empfohlen: 60°C)",
-          "burner_power_kw": "Steht auf dem Typenschild des Brenners",
-          "fuel_price_per_kwh": "Heizöl ~0,10 €/kWh | Erdgas ~0,08 €/kWh",
-          "efficiency": "Aus dem letzten Wartungsprotokoll, ca. 85%"
+          "temperature_sensor": "Select the sensor mounted in the flue pipe",
+          "temp_threshold": "Above this temperature the burner counts as ON (recommended: 60°C)",
+          "burner_power_kw": "Nominal heat output from the boiler's rating plate",
+          "fuel_price_per_kwh": "Heating oil ~0.10 €/kWh | Natural gas ~0.08 €/kWh",
+          "efficiency": "From the last maintenance report, approx. 85%"
         }
       }
     },
     "error": {
-      "sensor_not_found": "Sensor nicht gefunden – bitte einen aktiven Temperatursensor wählen"
+      "sensor_not_found": "Sensor not found – please select an active temperature sensor"
     },
     "abort": {
-      "already_configured": "Dieser Sensor wird bereits überwacht"
+      "already_configured": "This sensor is already being monitored"
     }
   },
   "options": {
     "step": {
       "init": {
-        "title": "HeizungsWächter Einstellungen",
+        "title": "HeizungsWächter settings",
         "data": {
-          "temp_threshold": "Schwellwert Heizung AN (°C)",
-          "burner_power_kw": "Brennerleistung (kW)",
-          "fuel_type": "Brennstofftyp",
-          "fuel_price_per_kwh": "Brennstoffpreis (€/kWh)",
-          "efficiency": "Wirkungsgrad (%)"
+          "temperature_sensor": "Temperature sensor (flue pipe)",
+          "temp_threshold": "Burner ON threshold (°C)",
+          "burner_power_kw": "Burner power (kW)",
+          "fuel_type": "Fuel type",
+          "fuel_price_per_kwh": "Fuel price (€/kWh)",
+          "efficiency": "Efficiency (%)"
+        },
+        "data_description": {
+          "temperature_sensor": "Sensor mounted in the flue pipe – can be changed later"
         }
       }
     }
