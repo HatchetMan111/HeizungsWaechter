@@ -45,6 +45,9 @@
           "temperature_sensor": "Sensor der im Ofenrohr sitzt – kann nachträglich geändert werden"
         }
       }
+    },
+    "error": {
+      "sensor_in_use": "Dieser Sensor wird bereits von einer anderen HeizungsWächter-Instanz verwendet"
     }
   }
 }

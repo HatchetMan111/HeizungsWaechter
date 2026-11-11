@@ -72,6 +72,7 @@ class HeizungsWaechterCoordinator:
         self._last_date:  str = ""
         self._last_month: str = ""
 
+        self._dirty         = False
         self._unsub_sensor   = None
         self._unsub_interval = None
 
@@ -150,6 +151,7 @@ class HeizungsWaechterCoordinator:
         if self.burner_on and self._burner_start:
             elapsed = (dt_util.utcnow() - self._burner_start).total_seconds()
             self._accumulate(elapsed)
+            self._dirty = True
         temp = self._read_sensor_temp()
         if temp is not None:
             self._sync_burner_state(temp)
@@ -176,7 +178,11 @@ class HeizungsWaechterCoordinator:
             self.current_session_s = (
                 dt_util.utcnow() - self._burner_start
             ).total_seconds()
-        self._schedule_save()
+        # Nur schreiben, wenn sich seit dem letzten Write etwas geändert hat
+        # (laufende Session zählt als Änderung)
+        if self._dirty or self.burner_on:
+            self._dirty = False
+            self._schedule_save()
         self._fire_update()
 
     def _read_sensor_temp(self) -> float | None:
@@ -250,6 +256,7 @@ class HeizungsWaechterCoordinator:
         self.kwh_today       += kwh;      self.kwh_month       += kwh;      self.kwh_total       += kwh
         self.cost_today      += cost;     self.cost_month      += cost;     self.cost_total      += cost
         self.volume_today    += volume;   self.volume_month    += volume;   self.volume_total    += volume
+        self._dirty = True
 
     # ── Rollover ───────────────────────────────────────────────────────────── #
 
@@ -260,10 +267,12 @@ class HeizungsWaechterCoordinator:
         if self._last_date and self._last_date != today:
             self.runtime_today_s = self.kwh_today = self.cost_today = self.volume_today = 0.0
             self.cycles_today = 0
+            self._dirty = True
 
         if self._last_month and self._last_month != month:
             self.runtime_month_s = self.kwh_month = self.cost_month = self.volume_month = 0.0
             self.cycles_month = 0
+            self._dirty = True
 
         self._last_date  = today
         self._last_month = month

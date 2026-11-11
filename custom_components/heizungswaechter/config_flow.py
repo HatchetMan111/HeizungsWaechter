@@ -262,12 +262,25 @@ class HeizungsWaechterOptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict | None = None
     ) -> config_entries.FlowResult:
+        errors: dict[str, str] = {}
+
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            # Verhindern, dass zwei Instanzen denselben Sensor überwachen
+            sensor = user_input[CONF_TEMPERATURE_SENSOR]
+            for other in self.hass.config_entries.async_entries(DOMAIN):
+                if (
+                    other.entry_id != self.config_entry.entry_id
+                    and other.data.get(CONF_TEMPERATURE_SENSOR) == sensor
+                ):
+                    errors[CONF_TEMPERATURE_SENSOR] = "sensor_in_use"
+                    break
+            if not errors:
+                return self.async_create_entry(title="", data=user_input)
 
         # Aktuelle Werte (data + options zusammenführen) als Vorbelegung
         current = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
             step_id="init",
             data_schema=_build_options_schema(current),
+            errors=errors,
         )

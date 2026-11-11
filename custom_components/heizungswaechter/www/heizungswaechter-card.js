@@ -5733,7 +5733,7 @@ function Yf({ hass: N, config: M }) {
     return h[0];
   }, [h, M.device]), ce = Y || U && U.map || {}, oe = (V) => {
     const G = ce[V];
-    if (!G) return null;
+    if (!G || !N.states) return null;
     const Le = N.states[G];
     return !Le || Le.state === "unknown" || Le.state === "unavailable" ? null : Le;
   }, j = (V) => {

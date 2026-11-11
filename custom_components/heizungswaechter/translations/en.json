@@ -45,6 +45,9 @@
           "temperature_sensor": "Sensor mounted in the flue pipe – can be changed later"
         }
       }
+    },
+    "error": {
+      "sensor_in_use": "This sensor is already used by another HeizungsWächter instance"
     }
   }
 }

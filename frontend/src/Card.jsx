@@ -133,7 +133,7 @@ function Card({ hass, config }) {
 
   const get = (suffix) => {
     const entityId = entityMap[suffix];
-    if (!entityId) return null;
+    if (!entityId || !hass.states) return null;
     const s = hass.states[entityId];
     if (!s || s.state === "unknown" || s.state === "unavailable") return null;
     return s;
